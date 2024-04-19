@@ -8,4 +8,5 @@ django-extensions
 daphne
 channels
 celery
-channels_redis
+channels-redis
+drf-spectacular

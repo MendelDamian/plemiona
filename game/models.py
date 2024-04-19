@@ -17,10 +17,13 @@ class GameSession(BaseModel):
     GAME_CODE_LENGTH = 6
     DURATION = timedelta(hours=1)
 
-    owner = models.OneToOneField("Player", on_delete=models.CASCADE, null=True, related_name="owned_game_session")
     game_code = models.CharField(max_length=GAME_CODE_LENGTH, null=False, unique=True, editable=False, db_index=True)
     has_started = models.BooleanField(default=False, null=False)
     ended_at = models.DateTimeField(null=True, default=None)
+
+    @property
+    def owner(self):
+        return self.players.first()
 
     @property
     def has_ended(self):
@@ -58,10 +61,10 @@ class Player(BaseModel):
     nickname = models.CharField(max_length=NICKNAME_MAX_LENGTH, null=False)
     channel_name = models.UUIDField(default=uuid.uuid4, editable=False, null=False)
 
-    game_session = models.ForeignKey("GameSession", on_delete=models.CASCADE, null=False)
+    game_session = models.ForeignKey("GameSession", on_delete=models.CASCADE, null=False, related_name="players")
     village = models.OneToOneField("Village", on_delete=models.CASCADE, null=False)
 
-    is_authenticated = True
+    user = models.ForeignKey("users.User", on_delete=models.CASCADE, null=True, related_name="players")
 
     class Meta:
         unique_together = ("game_session", "nickname")
@@ -291,9 +294,9 @@ class Village(BaseModel):
     def get_building_upgrade_time(self, building: Building) -> float:
         town_hall = self.town_hall
         return (
-            building.BASE_UPGRADE_TIME
-            * (building.UPGRADE_TIME_FACTOR**building.level)
-            * (town_hall.UPGRADE_TIME_DISCOUNT ** (-town_hall.level))
+                building.BASE_UPGRADE_TIME
+                * (building.UPGRADE_TIME_FACTOR ** building.level)
+                * (town_hall.UPGRADE_TIME_DISCOUNT ** (-town_hall.level))
         ).total_seconds()
 
     def __str__(self):
